@@ -1,7 +1,22 @@
 import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, CallbackContext
+# ابتدا KeepAlive را فعال می‌کنیم
+keep_alive()
 
+# سپس ربات تلگرام
+from telegram.ext import Application, CommandHandler
+import os
+
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+
+async def start(update, context):
+    await update.message.reply_text("سلام! ربات آنلاین است.")
+
+if __name__ == "__main__":
+    app_bot = Application.builder().token(BOT_TOKEN).build()
+    app_bot.add_handler(CommandHandler("start", start))
+    app_bot.run_polling()
 BOT_TOKEN = "6791439587:AAF1EY2RbGSoZgvSDGoaTa4InUefttzxe9Q"
 
 
