@@ -1,9 +1,28 @@
 import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, CallbackContext
+from flask import Flask
+from threading import Thread
 
 BOT_TOKEN = "6791439587:AAF1EY2RbGSoZgvSDGoaTa4InUefttzxe9Q"
 
+# ========= KeepAlive Flask =========
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is running!"
+
+def run():
+    app.run(host='0.0.0.0', port=8080)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+# فعال کردن KeepAlive
+keep_alive()
+# ==================================
 
 # کانال‌هایی که کاربر باید عضو باشه
 REQUIRED_CHANNELS = [
@@ -11,7 +30,7 @@ REQUIRED_CHANNELS = [
 ]
 
 # لینک محتوای ویژه
-SPECIAL_LINK = "https://t.me/+KR045CCo-yQyN2Rk"  # می‌تونی لینک دلخواه خودت بذاری
+SPECIAL_LINK = "https://t.me/+KR045CCo-yQyN2Rk"
 
 # تابع بررسی عضویت
 async def check_membership(user_id, context: CallbackContext):
@@ -35,6 +54,49 @@ async def start(update: Update, context: CallbackContext):
         buttons = [[InlineKeyboardButton(ch["name"], url=ch["link"])] for ch in not_joined]
         buttons.append([InlineKeyboardButton("✅ عضو شدم", callback_data="check_again")])
         reply_markup = InlineKeyboardMarkup(buttons)
+        await update.message.reply_text(
+            "🚫 شما هنوز عضو همه کانال‌ها نیستید!\n\nلطفاً عضو بشید و بعد روی دکمه «عضو شدم» کلیک کنید 👇",
+            reply_markup=reply_markup
+        )
+    else:
+        await send_link(update, context, from_callback=False)
+
+# هندلر دکمه "عضو شدم"
+async def button_handler(update: Update, context: CallbackContext):
+    query = update.callback_query
+    await query.answer()
+    user_id = query.from_user.id
+    not_joined = await check_membership(user_id, context)
+
+    if not_joined:
+        await query.edit_message_text(
+            "🚫 هنوز عضو همه کانال‌ها نشدی!\nلطفاً عضو بشو و دوباره امتحان کن."
+        )
+    else:
+        await send_link(update, context, from_callback=True)
+
+# ارسال لینک محتوای ویژه به جای عکس
+async def send_link(update: Update, context: CallbackContext, from_callback=False):
+    chat_id = update.effective_chat.id if not from_callback else update.callback_query.message.chat.id
+
+    # دکمه شیشه‌ای با متن دلخواه
+    buttons = [
+        [InlineKeyboardButton("🔥 تماشای محتوای داغ 🔥", url=SPECIAL_LINK)]
+    ]
+    reply_markup = InlineKeyboardMarkup(buttons)
+
+    await context.bot.send_message(
+        chat_id=chat_id,
+        text="✅ شما عضو همه کانال‌ها هستید! برای مشاهده محتوای ویژه، روی دکمه زیر کلیک کنید:",
+        reply_markup=reply_markup
+    )
+
+# اجرای ربات
+if __name__ == "__main__":
+    app_bot = Application.builder().token(BOT_TOKEN).build()
+    app_bot.add_handler(CommandHandler("start", start))
+    app_bot.add_handler(CallbackQueryHandler(button_handler))
+    app_bot.run_polling()        reply_markup = InlineKeyboardMarkup(buttons)
         await update.message.reply_text(
             "🚫 شما هنوز عضو همه کانال‌ها نیستید!\n\nلطفاً عضو بشید و بعد روی دکمه «عضو شدم» کلیک کنید 👇",
             reply_markup=reply_markup
